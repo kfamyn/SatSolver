@@ -145,7 +145,7 @@ def blockmesh(name, size, loc, mat, par=None, rot=(0, 0, 0)):
 class Scroller:
     HEADS = ['glazed', 'neutral', 'shock', 'focus', 'smile', 'blink', 'glazed_blink']
 
-    def __init__(self, loc=(0, 0, 0), rotz=0.0):
+    def __init__(self, loc=(0, 0, 0), rotz=0.0, photo=True):
         hood, sleeve, pants = tmat('hoodie', sheen=0.4), tmat('sleeve', sheen=0.4), tmat('pants', sheen=0.2)
         skin, sock = tmat('hand', rough=0.6), tmat('socks')
         self.root = joint('scroller', loc)
@@ -153,54 +153,66 @@ class Scroller:
         self.pelvis = joint('pelvis', (0, 0, 0.95), self.root)
         # torso: oversized hoodie (loose, boxy)
         loft('torso', [
-            (-0.05, 0.37, 0.25, 0.0, 2.6, 0.0),
-            (0.05, 0.39, 0.26, 0.0, 2.6, 0.12),
-            (0.2, 0.41, 0.27, -0.005, 2.6, 0.35),
-            (0.36, 0.45, 0.27, -0.01, 2.8, 0.6),
-            (0.47, 0.47, 0.25, 0.0, 3.0, 0.82),
-            (0.53, 0.36, 0.21, 0.01, 2.6, 0.95),
-            (0.57, 0.16, 0.15, 0.01, 2.0, 1.0),
-        ][::-1][::-1], hood, n=10, par=self.pelvis)
+            (-0.05, 0.33, 0.23, 0.0, 2.4, 0.0),
+            (0.05, 0.34, 0.235, 0.0, 2.4, 0.12),
+            (0.2, 0.355, 0.245, -0.005, 2.4, 0.35),
+            (0.34, 0.38, 0.245, -0.01, 2.5, 0.6),
+            (0.44, 0.39, 0.225, 0.0, 2.5, 0.82),
+            (0.5, 0.3, 0.19, 0.01, 2.3, 0.95),
+            (0.54, 0.15, 0.14, 0.01, 2.0, 1.0),
+        ], hood, n=10, par=self.pelvis)
         # bunched hood behind the neck
         loft('hood', [
             (0.5, 0.3, 0.12, 0.1, 2.2, 0.9), (0.58, 0.32, 0.16, 0.1, 2.2, 0.95), (0.64, 0.26, 0.14, 0.09, 2.0, 1.0),
         ], sleeve, n=8, par=self.pelvis)
         # neck + head
-        self.neck = joint('neck', (0, 0.005, 0.56), self.pelvis)
-        loft('neck_m', [(0.0, 0.11, 0.11, 0.0, 2.0, 0.85), (0.1, 0.1, 0.1, 0.0, 2.0, 0.85)], skin, n=8, par=self.neck)
-        self.head_j = joint('head', (0, 0, 0.09), self.neck)
+        self.neck = joint('neck', (0, 0.01, 0.52), self.pelvis)
+        loft('neck_m', [(0.0, 0.105, 0.105, 0.0, 2.0, 0.85), (0.07, 0.095, 0.095, 0.0, 2.0, 0.85)], cmat('neck_skin', (0.62, 0.42, 0.32), 0.6), n=8, par=self.neck)
+        self.head_j = joint('head', (0, 0.0, 0.06), self.neck)
         self.heads = {}
-        for hname in self.HEADS:
-            h = loft(f'head_{hname}', [
-                (0.0, 0.1, 0.1, 0.0, 2.0, 0.02),
-                (0.03, 0.12, 0.13, -0.015, 2.2, 0.12),
-                (0.06, 0.135, 0.165, -0.02, 2.4, 0.2),
-                (0.11, 0.152, 0.19, -0.012, 2.6, 0.36),
-                (0.16, 0.16, 0.2, -0.004, 2.6, 0.53),
-                (0.21, 0.162, 0.2, 0.0, 2.5, 0.68),
-                (0.25, 0.15, 0.185, 0.004, 2.3, 0.8),
-                (0.28, 0.115, 0.15, 0.006, 2.0, 0.9),
-                (0.295, 0.06, 0.08, 0.006, 2.0, 0.97),
-            ], tmat(f'head_{hname}', rough=0.6), n=12, par=self.head_j)
-            h.hide_render = True
-            self.heads[hname] = h
-        # nose wedge + ears + hair volume + AirPods
-        nose = loft('nose', [(0.11, 0.035, 0.02, -0.098, 2.0, 0.45), (0.15, 0.022, 0.012, -0.1, 2.0, 0.45)], skin, n=6, par=self.head_j)
-        for s in (-1, 1):
-            ear = blockmesh(f'ear{s}', (0.02, 0.04, 0.06), (s * 0.08, 0.005, 0.15), skin, par=self.head_j)
-            pod = blockmesh(f'airpod{s}', (0.012, 0.012, 0.03), (s * 0.088, -0.005, 0.135), cmat(f'pod{s}', (0.95, 0.95, 0.95), 0.2),
-                            par=self.head_j)
-        hair = tmat('hair')
-        loft('hair_vol', [
-            (0.2, 0.17, 0.21, 0.01, 2.4, 0.0), (0.25, 0.175, 0.215, 0.012, 2.3, 0.4),
-            (0.29, 0.15, 0.19, 0.012, 2.1, 0.7), (0.32, 0.09, 0.12, 0.015, 2.0, 1.0),
-        ], hair, n=12, par=self.head_j, cap_bottom=False)
-        for i, (x, rx, rz) in enumerate([(-0.05, 0.9, 0.2), (0.0, 1.1, -0.1), (0.05, 0.8, 0.3), (0.03, 0.6, -0.5), (-0.07, 0.5, 0.6)]):
-            t = blockmesh(f'tuft{i}', (0.045, 0.02, 0.07), (x, -0.08, 0.27), hair, par=self.head_j, rot=(rx, 0, rz))
+        if photo:
+            import photohead
+            src = os.path.join(TEX, 'face_src')
+            for hname in ('neutral', 'glazed'):
+                h = photohead.build(f'phead_{hname}', os.path.join(src, f'front_{hname}.png'), os.path.join(src, 'side.png'),
+                                    parent=self.head_j)
+                h.hide_render = True
+                self.heads[hname] = h
+            for s in (-1, 1):
+                blockmesh(f'airpod{s}', (0.008, 0.01, 0.018), (s * 0.084, 0.03, 0.105), cmat(f'pod{s}', (0.95, 0.95, 0.95), 0.2),
+                          par=self.head_j)
+        else:
+            for hname in self.HEADS:
+                h = loft(f'head_{hname}', [
+                    (0.0, 0.1, 0.1, 0.0, 2.0, 0.02),
+                    (0.03, 0.12, 0.13, -0.015, 2.2, 0.12),
+                    (0.06, 0.135, 0.165, -0.02, 2.4, 0.2),
+                    (0.11, 0.152, 0.19, -0.012, 2.6, 0.36),
+                    (0.16, 0.16, 0.2, -0.004, 2.6, 0.53),
+                    (0.21, 0.162, 0.2, 0.0, 2.5, 0.68),
+                    (0.25, 0.15, 0.185, 0.004, 2.3, 0.8),
+                    (0.28, 0.115, 0.15, 0.006, 2.0, 0.9),
+                    (0.295, 0.06, 0.08, 0.006, 2.0, 0.97),
+                ], tmat(f'head_{hname}', rough=0.6), n=12, par=self.head_j)
+                h.hide_render = True
+                self.heads[hname] = h
+            # nose wedge + ears + hair volume + AirPods
+            nose = loft('nose', [(0.11, 0.035, 0.02, -0.098, 2.0, 0.45), (0.15, 0.022, 0.012, -0.1, 2.0, 0.45)], skin, n=6, par=self.head_j)
+            for s in (-1, 1):
+                ear = blockmesh(f'ear{s}', (0.02, 0.04, 0.06), (s * 0.08, 0.005, 0.15), skin, par=self.head_j)
+                pod = blockmesh(f'airpod{s}', (0.012, 0.012, 0.03), (s * 0.088, -0.005, 0.135), cmat(f'pod{s}', (0.95, 0.95, 0.95), 0.2),
+                                par=self.head_j)
+            hair = tmat('hair')
+            loft('hair_vol', [
+                (0.2, 0.17, 0.21, 0.01, 2.4, 0.0), (0.25, 0.175, 0.215, 0.012, 2.3, 0.4),
+                (0.29, 0.15, 0.19, 0.012, 2.1, 0.7), (0.32, 0.09, 0.12, 0.015, 2.0, 1.0),
+            ], hair, n=12, par=self.head_j, cap_bottom=False)
+            for i, (x, rx, rz) in enumerate([(-0.05, 0.9, 0.2), (0.0, 1.1, -0.1), (0.05, 0.8, 0.3), (0.03, 0.6, -0.5), (-0.07, 0.5, 0.6)]):
+                t = blockmesh(f'tuft{i}', (0.045, 0.02, 0.07), (x, -0.08, 0.27), hair, par=self.head_j, rot=(rx, 0, rz))
         # arms
         self.sh, self.el, self.wr = {}, {}, {}
         for s in (-1, 1):
-            sh = joint(f'sh{s}', (s * 0.225, 0.0, 0.47), self.pelvis)
+            sh = joint(f'sh{s}', (s * 0.2, 0.0, 0.45), self.pelvis)
             loft(f'uarm{s}', [(0.03, 0.13, 0.13, 0, 2.2, 1.0), (-0.15, 0.115, 0.115, 0, 2.2, 0.55), (-0.29, 0.1, 0.1, 0, 2.2, 0.1)],
                  sleeve, n=8, par=sh)
             el = joint(f'el{s}', (0, 0, -0.29), sh)
@@ -261,6 +273,8 @@ class Scroller:
         self.pose_stand()
 
     def set_head(self, name):
+        if name not in self.heads:
+            name = 'glazed' if 'glazed' in name else 'neutral'
         for k, h in self.heads.items():
             h.hide_render = k != name
 
