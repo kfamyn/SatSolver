@@ -208,8 +208,8 @@ def limb(name, a, b, r, material, r2=None, subdiv=1):
 
 
 def parent(child, par):
+    """Parent with child's current location interpreted as local to `par`."""
     child.parent = par
-    child.matrix_parent_inverse = par.matrix_world.inverted()
     return child
 
 
