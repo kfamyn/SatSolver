@@ -83,8 +83,9 @@ for g in range(1, total + 1):
             x0 = rnd.randint(0, W // 2)
             y0 = rnd.randint(0, H // 2)
             bw, bh = rnd.randint(W // 6, W // 2), rnd.randint(H // 10, H // 4)
-            blk = out[y0:y0 + 4, x0:x0 + bw]
-            out[y0:y0 + bh, x0:x0 + bw] = np.repeat(blk, max(1, bh // 4), axis=0)[:out[y0:y0 + bh, x0:x0 + bw].shape[0]]
+            region = out[y0:y0 + bh, x0:x0 + bw]
+            blk = region[:4]
+            region[:] = np.repeat(blk, math.ceil(region.shape[0] / 4), axis=0)[:region.shape[0]]
         img = out
 
     # bloom
