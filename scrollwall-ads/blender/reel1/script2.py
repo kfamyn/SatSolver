@@ -27,7 +27,7 @@ BEATS = [
     # comic beat: music cuts, he freezes, looks up... wall slams back, phone goes flying.
     # The caption lands on the hit (offset), so the silence stays silent.
     ("then it's back.", [('wall_back', 2.6)], 1.15),
-    ("scrollwall. download it on the app store", [('endcard', 2.4)]),
+    ("scrollwall: your scroll paywall", [('endcard', 2.4)]),
 ]
 
 

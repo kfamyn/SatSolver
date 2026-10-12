@@ -38,7 +38,7 @@ SAY = {
     "and the wall lets you through": "And the wall lets you through.",
     "5 guilt-free minutes": "Five guilt-free minutes.",
     "then it's back.": "Then it's back.",
-    "scrollwall. download it on the app store": "Scrollwall. Download it on the App Store.",
+    "scrollwall: your scroll paywall": "Scrollwall: your scroll paywall.",
 }
 if LINE_MODE:
     SAY.update({"you open tiktok for 5 minutes": "You open TikTok, for five minutes.",
@@ -58,7 +58,7 @@ SAY_WHISPER = {
     "and the wall lets you through": "The wall opens.",
     "5 guilt-free minutes": "Five guilt-free minutes.",
     "then it's back.": "Then it's back.",
-    "scrollwall. download it on the app store": "Scrollwall. On the App Store.",
+    "scrollwall: your scroll paywall": "Scrollwall: your scroll paywall.",
 }
 # extra room a line may spill into (the music still runs for 0.4 s of the next shot)
 SPILL = {"5 guilt-free minutes": 0.35}
@@ -66,7 +66,7 @@ SPILL = {"5 guilt-free minutes": 0.35}
 
 # "Scrollwall" said like "paywall": SCROLL-wall, with a light secondary stress so "wall" isn't swallowed
 SW = os.environ.get('SW', 'skɹˈoʊlwɔl')  # short "a", one word: SCROLL-wall
-FIX = [(re.compile(r'skɹˈoʊl\s?wˈ?ˌ?ɔːl'), SW)]
+FIX = [(re.compile(r'skɹˈoʊl\s?wˈ?ˌ?ɔːl'), SW), (re.compile(r'pˈeɪwɔːl'), SW.replace('skɹˈoʊl', 'pˈeɪ'))]  # paywall rhymes
 PAUSE = {',': 0.07, '.': 0.16, '!': 0.16, '?': 0.16, '...': 0.26}  # short beats: clear stops without dragging
 LANG = 'en-gb' if VOICE.startswith('b') else 'en-us'
 
