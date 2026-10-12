@@ -3,6 +3,9 @@ at CARD DECLINED and comes back when Scrollwall appears, and the money SFX
 (ka-ching per swipe, declined buzz, head-whip, purple whoosh, coin plinks, pay chime).
 Narration (vo_kokoro.py) on top, music ducked under it.
 
+v2: softer swipe tinks; awkward beat of quiet on the eye contact; the car goes quiet
+while everyone judges the guy, only his far-off scrolling is heard.
+
 Usage: python3 audio.py <reel_dir> <out.wav> [vo.wav]
 """
 import json
@@ -58,12 +61,22 @@ def hz(m):
 
 # ---- sfx
 def kaching():
-    n = int(0.5 * SR)
-    bell = tone(2637, 0.5, 7, 0.5) * 0.6 + tone(3520, 0.5, 9, 0.2) * 0.4
-    rattle = np.diff(rng.normal(0, 1, n), prepend=0) * env(n, 0.001, 30) * 0.5
-    click = np.zeros(n)
-    click[:300] = np.diff(rng.normal(0, 1, 300), prepend=0)
-    return bell + rattle + click * 0.6
+    """soft coin tink + a short finger swipe (not a harsh register)."""
+    n = int(0.35 * SR)
+    tink = tone(1976, 0.35, 16, 0.15) * 0.5
+    tink[:int(0.25 * SR)] += tone(2960, 0.25, 22, 0.0)[:int(0.25 * SR)] * 0.25
+    swipe = lp(rng.normal(0, 1, n), 14) * np.exp(-((np.arange(n) / SR - 0.03) ** 2) / 0.0006) * 0.25
+    return lp(tink + swipe, 3)
+
+
+def glance():
+    """two muted woodblock taps: the awkward look-away."""
+    out = np.zeros(int(0.3 * SR))
+    for k, f in enumerate((660, 520)):
+        seg = tone(f, 0.12, 40, 0.1)
+        i = int(k * 0.11 * SR)
+        out[i:i + len(seg)] += seg
+    return out
 
 
 def buzz():
@@ -142,13 +155,25 @@ for c in np.arange(0.4, DUR, 1.15):
         n = int(0.12 * SR)
         put(bed, lp(rng.normal(0, 1, n), 10) * env(n, 0.001, 35) * 1.2, c + dt)
 
+# the 'judge that one guy' stretch: the car goes quiet, only his scrolling is heard (far off)
+judge0, _ = shot_t('judge')
+quiet = np.ones(N)
+a, b = int(judge0 * SR), int(cut * SR)
+ramp = int(0.25 * SR)
+quiet[a:b] = 0.12
+quiet[a:a + ramp] = np.linspace(1, 0.12, ramp)
 for x in events('kaching'):
-    put(fx, kaching(), x, 0.35)
+    far = judge0 <= x < cut
+    put(fx, lp(kaching(), 6) if far else kaching(), x, 0.1 if far else 0.16)
 for x in events('buzz'):
     put(fx, buzz(), x, 0.6)
 for x in events('whip'):
-    put(fx, whip(), x, 0.7)
-    put(fx, whip(), x + 0.04, 0.5)
+    put(fx, glance(), x, 0.25)
+# beat of silence on the eye contact
+ey0, _ = shot_t('eyes1')
+ew0, ewd = shot_t('eyes_away')
+e0, e1 = int(ey0 * SR), int((ew0 + ewd) * SR)
+quiet[e0:e1] = np.minimum(quiet[e0:e1], 0.25)
 for x in events('whoosh'):
     put(fx, shimmer(1.1), x, 0.6)
 for x in events('coin'):
@@ -169,7 +194,7 @@ if len(sys.argv) > 3:
     venv = np.convolve(np.abs(vo), np.ones(2205) / 2205, mode='same')
     music *= 1 - np.clip(venv * 8, 0, 0.6)
     fx *= 1 - np.clip(venv * 3, 0, 0.3)
-mix = music * 0.5 + fx + bed * 0.12 + vo * 0.85
+mix = music * 0.5 * quiet + fx + bed * 0.12 * np.maximum(quiet, 0.4) + vo * 0.85
 mix = np.tanh(mix * 1.15) * 0.88
 L = int(DUR * SR)
 pcm = (np.stack([mix[:L], mix[:L]], 1) * 32767).astype(np.int16)
