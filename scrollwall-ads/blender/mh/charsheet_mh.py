@@ -26,13 +26,14 @@ if s.world is None:
 s.world.use_nodes = True
 s.world.node_tree.nodes['Background'].inputs['Color'].default_value = (0.04, 0.04, 0.06, 1)
 # skin atlas keeps more pixels so the face survives; everything else stays tiny
-body = bpy.data.objects['Human.male1591']
+body = bpy.data.objects['Human.' + os.environ.get('PROXY', 'male1591')]
 ps1fy([body], decimate=1.0, tex_px=int(os.environ.get('SKIN', 512)))
 ps1fy([o for o in bpy.data.objects if o.type == 'MESH' and o is not body], decimate=float(os.environ.get('DEC', 0.35)), tex_px=int(os.environ.get('TEX', 128)))
 # dark-brown hair to match the face photo
-for sl in bpy.data.objects['Human.cortu_short_messy_hair'].material_slots:
+_hair = next(o for o in bpy.data.objects if o.type == 'MESH' and ('hair' in o.name or 'short0' in o.name))
+for sl in _hair.material_slots:
     nt = sl.material.node_tree
-    tex = nt.nodes.get('diffuseTexture')
+    tex = nt.nodes.get('diffuseTexture') or next((n for n in nt.nodes if n.type == 'TEX_IMAGE' and 'norm' not in n.name.lower()), None)
     bsdf = nt.nodes.get('Principled BSDF')
     if tex and bsdf:
         mul = nt.nodes.new('ShaderNodeMix'); mul.data_type = 'RGBA'; mul.blend_type = 'MULTIPLY'
@@ -42,18 +43,31 @@ for sl in bpy.data.objects['Human.cortu_short_messy_hair'].material_slots:
         nt.links.new(mul.outputs['Result'], bsdf.inputs['Base Color'])
 
 rig = bpy.data.objects['Human.rig']
+for sl in body.material_slots:  # matte, like old games
+    for n in sl.material.node_tree.nodes:
+        if n.type == 'BSDF_PRINCIPLED':
+            n.inputs['Roughness'].default_value = 0.9
+            n.inputs['Specular IOR Level'].default_value = 0.15
 print('bones', [b.name for b in rig.pose.bones][:40], flush=True)
 # arms down from the A-pose
-ARM = float(os.environ.get('ARM', 70))
-AX = os.environ.get('AXIS', 'Z')
+from mathutils import Matrix
+
+
+def point_bone(rig, name, direction):
+    """Rotate a pose bone (armature space) so it points along `direction`."""
+    pb = rig.pose.bones[name]
+    bpy.context.view_layer.update()
+    head = pb.head.copy()
+    cur = (pb.tail - pb.head).normalized()
+    q = cur.rotation_difference(Vector(direction).normalized())
+    pb.matrix = Matrix.Translation(head) @ q.to_matrix().to_4x4() @ Matrix.Translation(-head) @ pb.matrix
+    bpy.context.view_layer.update()
+
+
+OUTW = float(os.environ.get('ARM_OUT', 0.22))
 for side, sg in (('L', 1), ('R', -1)):
-    pb = rig.pose.bones[f'upperarm01.{side}']
-    pb.rotation_mode = 'XYZ'
-    r = [0.0, 0.0, 0.0]
-    r['XYZ'.index(AX)] = math.radians(ARM) * sg
-    pb.rotation_euler = r
-    lb = rig.pose.bones[f'lowerarm01.{side}']
-    lb.rotation_mode = 'XYZ'
+    point_bone(rig, f'upperarm01.{side}', (sg * OUTW, 0.03, -1.0))
+    point_bone(rig, f'lowerarm01.{side}', (sg * OUTW * 0.6, -0.12, -1.0))
 
 
 def light(name, loc, energy, color, size=1.5, target=(0, 0, 1.2)):

@@ -13,15 +13,15 @@ import numpy as np
 from mathutils import Vector
 
 FACE_SRC = '/home/user/SatSolver/scrollwall-ads/blender/assets/ps1v2/face_src/t8.png'
-OUT_IMG = '/home/user/mh/skin_face.png'
+OUT_IMG = os.environ.get('IMG', '/home/user/mh/skin_face.png')
 EYE_PX = (160, 148)  # midpoint between the eyes in the photo
 IPD_PX = 70.0
 
-bpy.ops.wm.open_mainfile(filepath='/home/user/mh/scroller.blend')
+bpy.ops.wm.open_mainfile(filepath=os.environ.get('IN', '/home/user/mh/scroller.blend'))
 s = bpy.context.scene
 s.render.engine = 'CYCLES'
 s.cycles.samples = 1
-P = bpy.data.objects['Human.male1591']
+P = bpy.data.objects['Human.' + os.environ.get('PROXY', 'male1591')]
 eyes = bpy.data.objects['Human.low-poly']
 bb = [eyes.matrix_world @ Vector(c) for c in eyes.bound_box]
 ex = max(v.x for v in bb) - min(v.x for v in bb)
@@ -134,5 +134,5 @@ for sl, m in zip(P.material_slots, orig_mats):
 baked = bpy.data.images.load(OUT_IMG)
 for n in skin_nodes:
     n.image = baked
-bpy.ops.wm.save_as_mainfile(filepath='/home/user/mh/scroller_face.blend')
+bpy.ops.wm.save_as_mainfile(filepath=os.environ.get('OUT', '/home/user/mh/scroller_face.blend'))
 print('saved', flush=True)

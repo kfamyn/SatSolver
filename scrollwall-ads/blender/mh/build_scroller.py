@@ -38,13 +38,15 @@ def add(path, kind='Clothes'):
     return obj
 
 
-add('proxymeshes/male1591/male1591.proxy', 'Proxymeshes')
+PROXY = os.environ.get('PROXY', 'male1591')
+add(f'proxymeshes/{PROXY}/{PROXY}.proxy', 'Proxymeshes')
 add('eyes/low-poly/low-poly.mhclo', 'Eyes')
 add('eyebrows/eyebrow001/eyebrow001.mhclo', 'Eyebrows')
 add('clothes/elvs_hooded_sweat_jacket1/elvs_hooded_sweat_jacket1.mhclo')
 add('clothes/cortu_cargo_pants/cortu_cargo_pants.mhclo')
 add('clothes/shoes01/shoes01.mhclo')
-add('hair/cortu_short_messy_hair/cortu_short_messy_hair.mhclo', 'Hair')
+HAIRSTYLE = os.environ.get('HAIRSTYLE', 'short02')
+add(f'hair/{HAIRSTYLE}/{HAIRSTYLE}.mhclo', 'Hair')
 try:
     skin = os.path.join(DATA, 'skins', 'young_caucasian_male', 'young_caucasian_male.mhmat')
     if os.path.exists(skin):
