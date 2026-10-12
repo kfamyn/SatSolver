@@ -42,6 +42,9 @@ for sl in body.material_slots:
         if n.type == 'BSDF_PRINCIPLED':
             n.inputs['Roughness'].default_value = 0.9
 rig = bpy.data.objects['Human.rig']
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'mh'))
+from style import apply_style  # noqa: E402
+apply_style(rig)
 
 S = room2.build()
 room2.lights(float(os.environ.get('SUN', 14)), float(os.environ.get('HAZE', 0.02)))

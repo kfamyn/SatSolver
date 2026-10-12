@@ -70,6 +70,16 @@ for side, sg in (('L', 1), ('R', -1)):
     point_bone(rig, f'lowerarm01.{side}', (sg * OUTW * 0.6, -0.12, -1.0))
 
 
+from style import apply_style
+apply_style(rig)
+import bmesh as _bm
+_fm = bpy.data.meshes.new('floor'); _b = _bm.new(); _bm.ops.create_grid(_b, x_segments=1, y_segments=1, size=3); _b.to_mesh(_fm); _b.free()
+_fo = bpy.data.objects.new('floor', _fm); s.collection.objects.link(_fo)
+_flm = bpy.data.materials.new('floorm'); _flm.use_nodes = True
+_flm.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (0.25, 0.24, 0.27, 1)
+_fo.data.materials.append(_flm)
+
+
 def light(name, loc, energy, color, size=1.5, target=(0, 0, 1.2)):
     d = bpy.data.lights.new(name, 'AREA')
     d.energy, d.color, d.size = energy, color, size

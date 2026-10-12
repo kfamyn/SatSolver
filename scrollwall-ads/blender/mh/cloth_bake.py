@@ -22,6 +22,10 @@ s.render.engine = 'CYCLES'
 s.cycles.samples = 8
 body = bpy.data.objects['Human.' + PROXY]
 cloth = [o for o in bpy.data.objects if o.type == 'MESH' and any(k in o.name for k in ('jacket', 'pants', 'shoes'))]
+# MakeHuman hides body skin under clothes with MASK modifiers; the clothes become
+# paint on the body here, so the hidden legs/feet must come back (and get baked)
+for m in [m for m in body.modifiers if m.type == 'MASK']:
+    body.modifiers.remove(m)
 print('cloth', [o.name for o in cloth], flush=True)
 
 # recolour the hoodie to heather grey (reads better at PS1 resolution)
