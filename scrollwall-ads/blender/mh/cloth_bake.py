@@ -36,9 +36,13 @@ for o in cloth:
         src_sock = bsdf.inputs['Base Color'].links[0].from_socket
         hsv = nt.nodes.new('ShaderNodeHueSaturation')
         hsv.inputs['Saturation'].default_value = float(os.environ.get('HOOD_SAT', 0.12))
-        hsv.inputs['Value'].default_value = float(os.environ.get('HOOD_VAL', 3.2))
+        hsv.inputs['Value'].default_value = 1.0
+        bc = nt.nodes.new('ShaderNodeBrightContrast')  # lift the near-black navy to heather grey, keep the folds
+        bc.inputs['Bright'].default_value = float(os.environ.get('HOOD_BRIGHT', 0.3))
+        bc.inputs['Contrast'].default_value = 0.15
         nt.links.new(src_sock, hsv.inputs['Color'])
-        nt.links.new(hsv.outputs['Color'], bsdf.inputs['Base Color'])
+        nt.links.new(hsv.outputs['Color'], bc.inputs['Color'])
+        nt.links.new(bc.outputs['Color'], bsdf.inputs['Base Color'])
 
 # target starts as the face-baked skin, resized to RES
 mat = body.material_slots[0].material
