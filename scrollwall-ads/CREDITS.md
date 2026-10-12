@@ -7,4 +7,4 @@
 - Fonts: Inter (OFL), Milky (app bundle).
 
 ## Voice
-- Voice-over generated with Kokoro-82M (hexgrad, Apache-2.0) via kokoro-onnx (MIT); voices af_nicole, am_santa, af_heart.
+- Voice-over generated with Kokoro-82M (hexgrad, Apache-2.0) via kokoro-onnx (MIT); voices af_nicole, am_santa, af_heart, am_liam (chosen).
