@@ -25,12 +25,12 @@ DUR = T['total_frames'] / T['fps']
 
 # spoken versions of the on-screen captions (numbers spelled out, brand split so it's said right)
 SAY = {
-    "you open tiktok for 5 minutes": "You open TikTok, for five minutes.",
+    "you open tiktok for 5 minutes": "You open TikTok for five minutes.",
     "5 minutes turns into 3 hours": "Five minutes turns into three hours.",
     "screen time warns you. you tap ignore": "Screen Time warns you. You tap ignore.",
     "you swipe again... and hit a wall": "You swipe again... and hit a wall.",
     "a scrollwall.": "A Scrollwall.",
-    "no ignore button. zero coins": "No ignore button. Zero coins.",
+    "no ignore button. zero coins": "No ignore. Zero coins.",
     "so you actually focus": "So you actually focus.",
     "every focused minute earns coins": "Every focused minute earns coins.",
     "pay with your focus card. tilt to spend": "Pay with your Focus Card. Tilt to spend.",
@@ -62,7 +62,7 @@ SPILL = {"5 guilt-free minutes": 0.35}
 
 # "Scrollwall" said like "paywall": SCROLL-wall, with a light secondary stress so "wall" isn't swallowed
 FIX = [(re.compile(r'skɹˈoʊl\s?wˈ?ɔːl'), 'skɹˈoʊlwˌɔːl')]
-PAUSE = {',': 0.15, '.': 0.3, '!': 0.3, '?': 0.3, '...': 0.45}
+PAUSE = {',': 0.07, '.': 0.16, '!': 0.16, '?': 0.16, '...': 0.26}  # short beats: clear stops without dragging
 LANG = 'en-gb' if VOICE.startswith('b') else 'en-us'
 
 
@@ -79,7 +79,7 @@ def synth(text, speed):
         a, sr = K.create(ph, voice=VOICE, speed=speed, lang=LANG, is_phonemes=True)
         a = np.asarray(a, dtype=np.float32)
         nz = np.where(np.abs(a) > 0.01)[0]
-        a = a[max(0, nz[0] - 200):nz[-1] + 600] if len(nz) else a
+        a = a[max(0, nz[0] - 100):nz[-1] + 300] if len(nz) else a
         end = '...' if part.endswith('...') else part[-1]
         out += [a, np.zeros(int(PAUSE.get(end, 0.0) * sr), dtype=np.float32)]
     if len(out) > 1:
@@ -97,8 +97,8 @@ def whisperize(a):
     return a * 0.8 + hiss
 
 
-MAXSPEED = 1.15  # more than this flattens the intonation
-NATURAL = 1.05
+MAXSPEED = 1.3
+NATURAL = float(os.environ.get('PACE', 1.2))  # brisk, TikTok-narrator pace
 if OUT.endswith('.json'):
     # plan mode: natural length of every line, so script2.py can stretch the cut to the voice
     plan = {cap: len(synth((SAY_WHISPER if STYLE == 'whisper' else SAY).get(cap, cap), NATURAL)) / SR for cap in SAY}
