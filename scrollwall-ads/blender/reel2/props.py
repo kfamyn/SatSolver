@@ -120,7 +120,7 @@ def newspaper(name='paper'):
         for li in poly.loop_indices:
             u, v = uvl.data[li].uv
             u2 = (u * 2) % 1.0 if u < 0.999 else 1.0
-            uvl.data[li].uv = (1.0 - u2, 1.0 - v)  # as seen from across the aisle
+            uvl.data[li].uv = (u2, 1.0 - v)  # upright + readable from across the aisle
     return ob
 
 

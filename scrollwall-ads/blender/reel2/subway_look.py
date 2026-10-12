@@ -22,7 +22,8 @@ s.cycles.max_bounces = 4
 s.cycles.filter_width = 0.01
 s.render.resolution_x, s.render.resolution_y = 270, 480
 s.view_settings.view_transform = 'AgX'
-s.view_settings.look = 'AgX - Punchy'
+s.view_settings.look = 'None'
+s.view_settings.exposure = float(os.environ.get('EXPO', -0.3))
 S = subway.build()
 subway.lights()
 subway.set_tunnel(S, 0.3)
@@ -33,6 +34,11 @@ K.seat(cast['office'], 0.15, -1, 'read')
 K.seat(cast['worker'], 1.05, -1, 'idle')
 K.stand(cast['student'], -1.25, 0.35, facing=math.pi / 2)
 import props as P  # noqa: E402
+bg = [K.clone(cast['worker'], 'bg1'), K.clone(cast['office'], 'bg2'), K.clone(cast['business'], 'bg3')]
+K.seat(bg[0], -3.7, -1, 'phone_down')
+K.seat(bg[1], -4.2, 1, 'idle')
+K.stand(bg[2], -3.0, -0.3, facing=-math.pi / 2)
+K.turn_head(cast['worker'], 0.5)
 hp, hp_tex = P.phone('hero_phone')
 P.hold_phone(hp, cast['hero'])
 sp, _ = P.phone('student_phone', 'screens/balance_00')

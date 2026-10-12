@@ -119,7 +119,8 @@ MAXSPEED = float(os.environ.get('MAXSPEED', 1.3))
 NATURAL = float(os.environ.get('PACE', 1.2))  # brisk, TikTok-narrator pace
 if OUT.endswith('.json'):
     # plan mode: natural length of every line, so script2.py can stretch the cut to the voice
-    plan = {cap: len(synth((SAY_WHISPER if STYLE == 'whisper' else SAY).get(cap, cap), NATURAL)) / SR for cap in SAY}
+    keys = [c for _, c in T['captions']] if T.get('captions') else list(SAY)
+    plan = {cap: len(synth((SAY_WHISPER if STYLE == 'whisper' else SAY).get(cap, cap), NATURAL)) / SR for cap in keys}
     json.dump(plan, open(OUT, 'w'), indent=1)
     print(json.dumps(plan, indent=1))
     sys.exit(0)

@@ -4,6 +4,7 @@ fluorescent strips, and a dark tunnel with lamps streaming past the windows.
 
 Car footprint: x -5..5 (length), y -1.35..1.35, floor z 0, ceiling ~2.25.
 Longitudinal benches along both walls, so passengers face each other.
+Lighting: warm, soft fluorescent (not clinical), plus low warm fill.
 """
 import math
 import os
@@ -15,7 +16,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 for p in ('../room2', '../ps1v2', '../mh'):
     sys.path.insert(0, os.path.join(HERE, p))
 import char as C  # noqa: E402
-from room import box, cyl, plane  # noqa: E402
+from room import box, cyl, lump, plane  # noqa: E402
 from ps1fy import shrink_image  # noqa: E402
 from room2 import photo  # noqa: E402
 
@@ -63,14 +64,14 @@ def build():
     st = steel()
     floor = photo('rubber_tiles', (10, 3), 128, tint=(0.55, 0.58, 0.62))
     lower = photo('blue_metal_plate', (8, 1), 96, tint=(0.92, 0.93, 0.95))
-    panel = C.cmat('panel_white', (0.86, 0.87, 0.86), 0.45)
+    panel = C.cmat('panel_white', (0.84, 0.8, 0.72), 0.55)  # warm cream, not clinical white
     box('floor', (2 * LEN, 2 * HALF_W, 0.04), (0, 0, -0.02), floor)
     # ceiling: flat centre + angled coves (where the ads live)
-    box('ceil_mid', (2 * LEN, 1.4, 0.04), (0, 0, CEIL + 0.02), panel)
+    box('ceil_mid', (2 * LEN, 1.4, 0.04), (0, 0, CEIL + 0.02), C.cmat('ceiling', (0.55, 0.5, 0.44), 0.7))
     for sg in (-1, 1):
         box(f'cove{sg}', (2 * LEN, 0.62, 0.03), (0, sg * 0.98, CEIL - 0.14), panel, rot=(sg * math.radians(28), 0, 0))
     # fluorescent strips (two rows)
-    lamp = C.cmat('fluoro', (0.92, 0.96, 1.0), 0.5, emission=6.0)
+    lamp = C.cmat('fluoro', (1.0, 0.9, 0.76), 0.5, emission=1.4)
     for sg in (-1, 1):
         for i in range(8):
             box(f'fluoro{sg}_{i}', (1.0, 0.09, 0.03), (-4.4 + i * 1.25, sg * 0.45, CEIL - 0.005), lamp)
@@ -150,6 +151,15 @@ def build():
             o = box(f'tlamp{sg}_{i}', (0.35, 0.05, 0.06), (0, sg * 2.14, 1.3), tl)
             o.visible_shadow = False
             S['tunnel_lamps'].append((o, sg, i))
+    # lived-in: bags, a backpack, coffee cups
+    bags = [((-3.6, 1.0, 0.55), (0.45, 0.25, 0.85), (0.18, 0.12, 0.09)), ((2.0, -1.0, 0.55), (0.3, 0.2, 0.25), (0.35, 0.1, 0.12)),
+            ((3.7, 1.05, 0.55), (0.3, 0.3, 0.35), (0.12, 0.2, 0.15)), ((-0.2, -0.75, 0.12), (0.35, 0.25, 0.28), (0.1, 0.1, 0.12))]
+    for i, (loc, sc, col) in enumerate(bags):
+        lump(f'bag{i}', 0.32, loc, C.cmat(f'bag{i}', col, 0.8), scale=sc, seed=i)
+    cup = C.cmat('cup', (0.92, 0.9, 0.85), 0.6)
+    lid = C.cmat('lid', (0.15, 0.1, 0.08), 0.5)
+    for i, (x, y) in enumerate(((1.3, 1.05), (-2.0, -1.05), (0.9, -0.95))):
+        cyl(f'cup{i}', 0.04, 0.12, (x, y, 0.53), cup, seg=8, r2=0.045, top_mat=lid)
     set_tunnel(S, 0.0)
     return S
 
@@ -166,15 +176,23 @@ def lights(strength=1.0):
     w = bpy.context.scene.world or bpy.data.worlds.new('w')
     bpy.context.scene.world = w
     w.use_nodes = True
-    w.node_tree.nodes['Background'].inputs['Color'].default_value = (0.02, 0.02, 0.025, 1)
-    w.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.2
+    w.node_tree.nodes['Background'].inputs['Color'].default_value = (0.05, 0.035, 0.025, 1)
+    w.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.6
     out = []
     for sg in (-1, 1):
         for i in range(4):
             d = bpy.data.lights.new(f'fl{sg}{i}', 'AREA')
-            d.shape, d.size, d.size_y = 'RECTANGLE', 2.0, 0.15
-            d.energy, d.color = 90 * strength, (0.9, 0.95, 1.0)
+            d.shape, d.size, d.size_y = 'RECTANGLE', 2.4, 0.6  # big + soft
+            d.energy, d.color = 40 * strength, (1.0, 0.84, 0.66)
             o = C.link(bpy.data.objects.new(f'fl{sg}{i}', d))
             o.location = (-3.75 + i * 2.5, sg * 0.45, CEIL - 0.04)
             out.append(o)
+    # warm low fill so faces aren't lit only from straight above
+    for x in (-2.5, 2.5):
+        d = bpy.data.lights.new(f'fill{x}', 'AREA')
+        d.size, d.energy, d.color = 2.0, 25 * strength, (1.0, 0.75, 0.5)
+        o = C.link(bpy.data.objects.new(f'fill{x}', d))
+        o.location = (x, 0, 1.1)
+        o.rotation_euler = (0, math.radians(90), 0)
+        out.append(o)
     return out

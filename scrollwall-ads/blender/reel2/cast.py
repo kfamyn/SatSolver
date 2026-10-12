@@ -81,6 +81,10 @@ def reset(p):
     for pb in p['rig'].pose.bones:
         pb.matrix_basis = Matrix.Identity(4)
     apply_style(p['rig'])
+    if p['name'] == 'hero':  # tuck the phone hand's fingers so they don't cover the screen in close-ups
+        for f in '2345':
+            p['rig'].pose.bones[f'finger{f}-1.L'].scale = (0.35, 0.35, 0.35)
+        p['rig'].pose.bones['metacarpal1.L'].scale = (0.3, 0.3, 0.3)
     bpy.context.view_layer.update()
 
 
@@ -159,3 +163,30 @@ def hand(p, side='L'):
     bpy.context.view_layer.update()
     r = p['rig']
     return r.matrix_world @ r.pose.bones[f'wrist.{side}'].tail
+
+
+def clone(p, name):
+    """Background passenger: copy of a person (own rig/pose, shared meshes)."""
+    m = {}
+    for o in p['objs']:
+        if o.type in ('ARMATURE', 'MESH'):
+            c = o.copy()
+            bpy.context.scene.collection.objects.link(c)
+            m[o] = c
+    for o, c in m.items():
+        if o.parent in m:
+            c.parent = m[o.parent]
+        for mod in c.modifiers:
+            if mod.type == 'ARMATURE' and mod.object in m:
+                mod.object = m[mod.object]
+    return {'name': name, 'rig': m[p['rig']], 'body': m[p['body']], 'eyes': m.get(p['eyes']), 'objs': list(m.values())}
+
+
+def turn_head(p, yaw, tilt=0.0):
+    """Yaw the head around its own axis (radians, + = character's left), optional extra nod."""
+    pb = p['rig'].pose.bones['head']
+    bpy.context.view_layer.update()
+    pb.matrix = pb.matrix @ Matrix.Rotation(yaw, 4, 'Y') @ Matrix.Rotation(tilt, 4, 'X')
+    nk = p['rig'].pose.bones['neck01']
+    nk.matrix = nk.matrix @ Matrix.Rotation(yaw * 0.3, 4, 'Y')
+    bpy.context.view_layer.update()
