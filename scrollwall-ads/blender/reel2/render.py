@@ -161,7 +161,7 @@ def everyone(t, judge=0.0, phones_down=True):
     K.seat(business, BUS_X, 1, 'paper', t=t)
     K.seat(office, OFF_X, -1, 'read', t=t)
     K.seat(worker, WRK_X, -1, 'idle', t=t)
-    K.stand(student, 2.3, -0.35, facing=math.pi / 2, t=t)
+    K.stand(student, 2.3, -0.35, facing=math.pi / 2, act='idle', t=t)
     K.seat(bg[0], -3.7, -1, 'phone_down', t=t)
     K.seat(bg[1], -4.2, 1, 'idle', t=t)
     K.stand(bg[2], -3.0, -0.3, facing=-math.pi / 2, t=t)
@@ -256,7 +256,7 @@ def shot(i, t, n, g):
             place(eb + d * 0.6 + Vector((-0.25, 0, 0.02)), eb, 32)
         else:
             mid = (eo + eb) / 2
-            place(mid + Vector((1.3, 0.0, 0.1)), mid, 22)
+            place(mid + Vector((0.95, 0.0, 0.05)), mid, 24)
     elif sid == 'judge':
         hero_pose(t, 'scroll', 3.0)
         screen(f'r2screens/meter/{min(39, t // 2):02d}')
@@ -276,7 +276,6 @@ def shot(i, t, n, g):
             if age < 10:
                 pops.append(('-$0.01', proj(p + phone_up() * 0.1 + Vector(((j % 7 - 3) * 0.02, 0, 0))), age, 'red'))
         meta['kaching'] = t % 3 == 0
-        meta['shake'] = 0.25
     elif sid == 'declined':
         hero_pose(t, 'phone')
         everyone(g, judge=1.0)

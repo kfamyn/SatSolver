@@ -92,7 +92,7 @@ def draw_pops(img, pops):
         pop = 1 + (1 if age < 2 else 0)
         lay = Image.new('RGBA', (len(txt) * 6 * 2 + 4, 20), (0, 0, 0, 0))
         fg, sh = POP_COL.get(col, POP_COL['red'])
-        pixfont.draw(lay, (2, 2), txt, (*fg, int(255 * a)), 2, shadow=(*sh, int(255 * a)))
+        pixfont.draw(lay, (2, 2), txt, (*fg, int(200 * a)), 1, shadow=(*sh, int(200 * a)))  # small + subtle
         lay = lay.resize((lay.width * S * pop // 2 * 2 // 2, lay.height * S * pop // 2 * 2 // 2), Image.NEAREST)
         px, py = int(x * W) - lay.width // 2, int(y * H) - lay.height // 2 - rise
         img.paste(lay, (px, py), lay)

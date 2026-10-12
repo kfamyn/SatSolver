@@ -144,6 +144,11 @@ def stand(p, x, y, facing=0.0, act='hold', t=0.0):
         point(r, 'upperarm01.L', (0.2, 0.03, -1.0))
         point(r, 'lowerarm01.L', (0.12, -0.12, -1.0))
         point(r, 'head', (0, -0.2, 1.0))
+    else:  # relaxed: arms down, hands near the hips, slight head tilt
+        for s_, sg in (('L', 1), ('R', -1)):
+            point(r, f'upperarm01.{s_}', (sg * 0.18, 0.02, -1.0))
+            point(r, f'lowerarm01.{s_}', (sg * 0.08, -0.15, -1.0))
+        point(r, 'head', (0.05, -0.15, 1.0))
     bpy.context.view_layer.update()
     ev = p['body'].evaluated_get(bpy.context.evaluated_depsgraph_get())
     zmin = min((ev.matrix_world @ v.co).z for v in ev.data.vertices)
