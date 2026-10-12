@@ -3,7 +3,8 @@ at CARD DECLINED and comes back when Scrollwall appears, and the money SFX
 (ka-ching per swipe, declined buzz, head-whip, purple whoosh, coin plinks, pay chime).
 Narration (vo_kokoro.py) on top, music ducked under it.
 
-v2: softer swipe tinks; awkward beat of quiet on the eye contact; the car goes quiet
+v3: softer swipe tinks; soft 'womp womp' for broke; no pauses except the one before
+'Okay, real money...'; the car goes quiet
 while everyone judges the guy, only his far-off scrolling is heard.
 
 Usage: python3 audio.py <reel_dir> <out.wav> [vo.wav]
@@ -80,11 +81,18 @@ def glance():
 
 
 def buzz():
-    n = int(0.55 * SR)
-    t = np.arange(n) / SR
-    sq = np.sign(np.sin(2 * np.pi * 110 * t)) * 0.5 + np.sign(np.sin(2 * np.pi * 116 * t)) * 0.3
-    gate = ((t % 0.28) < 0.2).astype(float)
-    return lp(sq, 6) * gate * np.exp(-t * 1.5)
+    """soft 'womp womp' (muted, descending) for CARD DECLINED / broke."""
+    out = np.zeros(int(0.8 * SR))
+    for k, (f0, f1) in enumerate(((330, 311), (294, 262))):
+        n = int(0.34 * SR)
+        t = np.arange(n) / SR
+        f = np.linspace(f0, f1, n)
+        ph = 2 * np.pi * np.cumsum(f) / SR
+        v = (np.sin(ph) + 0.35 * np.sin(2 * ph) + 0.15 * np.sin(3 * ph)) * np.minimum(1, t / 0.03) * np.exp(-t * 3)
+        v *= 1 + 0.15 * np.sin(2 * np.pi * 6 * t)  # a little 'wah'
+        i = int(k * 0.36 * SR)
+        out[i:i + n] += lp(v, 8)
+    return out * 0.5
 
 
 def whip():
@@ -136,10 +144,13 @@ def loop(length):
     return buf[: int(length * SR)]
 
 
-cut, _ = shot_t('declined')
-back, _ = shot_t('shield')
+cut, _ = shot_t('declined')  # (end of the quiet 'judge' stretch)
+fz0, fzd = shot_t('freeze')
+back, _ = shot_t('pull_out')
+pause0 = fz0 + fzd - 0.7  # the one pause: right before 'Okay, real money is a bit much'
+judge_end = cut
 end0, _ = shot_t('endcard')
-m1 = loop(cut)
+m1 = loop(pause0)
 m1[-400:] *= np.linspace(1, 0, 400)
 put(music, m1, 0.0)
 m2 = loop(DUR - back)
@@ -166,14 +177,12 @@ for x in events('kaching'):
     far = judge0 <= x < cut
     put(fx, lp(kaching(), 6) if far else kaching(), x, 0.1 if far else 0.16)
 for x in events('buzz'):
-    put(fx, buzz(), x, 0.6)
+    put(fx, buzz(), x, 0.35)
 for x in events('whip'):
     put(fx, glance(), x, 0.25)
-# beat of silence on the eye contact
-ey0, _ = shot_t('eyes1')
-ew0, ewd = shot_t('eyes_away')
-e0, e1 = int(ey0 * SR), int((ew0 + ewd) * SR)
-quiet[e0:e1] = np.minimum(quiet[e0:e1], 0.25)
+# the quiet judge stretch ends when the card is declined
+r = int(0.15 * SR)
+quiet[int(judge_end * SR):int(judge_end * SR) + r] = np.linspace(0.12, 1, r)
 for x in events('whoosh'):
     put(fx, shimmer(1.1), x, 0.6)
 for x in events('coin'):

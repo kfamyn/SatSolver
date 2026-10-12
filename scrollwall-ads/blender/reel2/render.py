@@ -25,6 +25,8 @@ RES = int(os.environ.get('RES', 180))
 SPP = int(os.environ.get('SPP', 6))
 ONLY = {int(x) for x in os.environ.get('ONLY', '').split(',') if x}
 MID = os.environ.get('MID') == '1'
+DRY = os.environ.get('DRY') == '1'  # compute meta.json only (for sound), no rendering
+STEP = int(os.environ.get('STEP', 1))  # 2 = 15 fps scene-check drafts
 
 C = K.load_cast()
 import props as P  # noqa: E402
@@ -350,11 +352,15 @@ def main():
                 continue
             if sh['id'] == 'endcard' and t > 0 and not MID:
                 continue
+            if not MID and (g - 1) % STEP:
+                continue
             G[0] = g
             s.frame_set(g)
             m = shot(i, t, n, g) or {}
             m['shot'] = i
             meta[g] = m
+            if DRY:
+                continue
             s.render.filepath = os.path.join(FR, f'{g:04d}.png')
             bpy.ops.render.render(write_still=True)
             print(f'shot {i:02d} {sh["id"]} frame {g}', flush=True)
