@@ -2,13 +2,14 @@
 each squeezed (speed) to fit its slot. Writes a full-length mono VO track at 44.1 kHz
 + <out>_caps.json (captions as spoken, with their real start times).
 
-Run with the kokoro venv:
+Run with the kokoro venv (out ending in .json = plan mode: natural line lengths for script2.py):
   /home/user/kokenv/bin/python vo_kokoro.py <reel_dir> <voice> <out.wav> [style]
 style: plain | whisper (extra breath, softer, closer) ; voices: af_nicole (whispery),
 am_santa (Santa), af_heart (natural), bm_fable (storyteller) ...
 """
 import json
 import os
+import re
 import sys
 
 import numpy as np
@@ -28,7 +29,7 @@ SAY = {
     "5 minutes turns into 3 hours": "Five minutes turns into three hours.",
     "screen time warns you. you tap ignore": "Screen Time warns you. You tap ignore.",
     "you swipe again... and hit a wall": "You swipe again... and hit a wall.",
-    "a scrollwall.": "A scroll wall.",
+    "a scrollwall.": "A Scrollwall.",
     "no ignore button. zero coins": "No ignore button. Zero coins.",
     "so you actually focus": "So you actually focus.",
     "every focused minute earns coins": "Every focused minute earns coins.",
@@ -36,7 +37,7 @@ SAY = {
     "and the wall lets you through": "And the wall lets you through.",
     "5 guilt-free minutes": "Five guilt-free minutes.",
     "then it's back.": "Then it's back.",
-    "scrollwall. download it on the app store": "Scroll wall. Download it on the App Store.",
+    "scrollwall. download it on the app store": "Scrollwall. Download it on the App Store.",
 }
 # whispers are slow: a tighter script for the whisper style
 SAY_WHISPER = {
@@ -44,7 +45,7 @@ SAY_WHISPER = {
     "5 minutes turns into 3 hours": "Three hours later.",
     "screen time warns you. you tap ignore": "Screen Time warns you. Ignore.",
     "you swipe again... and hit a wall": "Swipe again... a wall.",
-    "a scrollwall.": "A scroll wall.",
+    "a scrollwall.": "A Scrollwall.",
     "no ignore button. zero coins": "Zero coins left.",
     "so you actually focus": "So you focus.",
     "every focused minute earns coins": "Focus earns coins.",
@@ -53,17 +54,37 @@ SAY_WHISPER = {
     "and the wall lets you through": "The wall opens.",
     "5 guilt-free minutes": "Five guilt-free minutes.",
     "then it's back.": "Then it's back.",
-    "scrollwall. download it on the app store": "Scroll wall. On the App Store.",
+    "scrollwall. download it on the app store": "Scrollwall. On the App Store.",
 }
 # extra room a line may spill into (the music still runs for 0.4 s of the next shot)
 SPILL = {"5 guilt-free minutes": 0.35}
 
 
+# "Scrollwall" said like "paywall": SCROLL-wall, with a light secondary stress so "wall" isn't swallowed
+FIX = [(re.compile(r'skɹˈoʊl\s?wˈ?ɔːl'), 'skɹˈoʊlwˌɔːl')]
+PAUSE = {',': 0.15, '.': 0.3, '!': 0.3, '?': 0.3, '...': 0.45}
+LANG = 'en-gb' if VOICE.startswith('b') else 'en-us'
+
+
 def synth(text, speed):
-    a, sr = K.create(text, voice=VOICE, speed=speed, lang='en-gb' if VOICE.startswith('b') else 'en-us')
-    a = np.asarray(a, dtype=np.float32)
-    nz = np.where(np.abs(a) > 0.01)[0]  # trim leading/trailing silence
-    a = a[max(0, nz[0] - 200):nz[-1] + 800] if len(nz) else a
+    """clause by clause, with real pauses at punctuation (one long call runs through commas/dots)."""
+    out = []
+    for part in re.findall(r'[^,.!?]+(?:\.\.\.|[,.!?])?', text):
+        part = part.strip()
+        if not part:
+            continue
+        ph = K.tokenizer.phonemize(part, LANG)
+        for rx, rep in FIX:
+            ph = rx.sub(rep, ph)
+        a, sr = K.create(ph, voice=VOICE, speed=speed, lang=LANG, is_phonemes=True)
+        a = np.asarray(a, dtype=np.float32)
+        nz = np.where(np.abs(a) > 0.01)[0]
+        a = a[max(0, nz[0] - 200):nz[-1] + 600] if len(nz) else a
+        end = '...' if part.endswith('...') else part[-1]
+        out += [a, np.zeros(int(PAUSE.get(end, 0.0) * sr), dtype=np.float32)]
+    if len(out) > 1:
+        out = out[:-1]  # no pause after the last clause
+    a = np.concatenate(out)
     x = np.linspace(0, len(a) - 1, int(len(a) * SR / sr))
     return np.interp(x, np.arange(len(a)), a)
 
@@ -76,7 +97,14 @@ def whisperize(a):
     return a * 0.8 + hiss
 
 
-MAXSPEED = 1.32
+MAXSPEED = 1.15  # more than this flattens the intonation
+NATURAL = 1.05
+if OUT.endswith('.json'):
+    # plan mode: natural length of every line, so script2.py can stretch the cut to the voice
+    plan = {cap: len(synth((SAY_WHISPER if STYLE == 'whisper' else SAY).get(cap, cap), NATURAL)) / SR for cap in SAY}
+    json.dump(plan, open(OUT, 'w'), indent=1)
+    print(json.dumps(plan, indent=1))
+    sys.exit(0)
 track = np.zeros(int(DUR * SR) + SR, dtype=np.float32)
 caps = T['captions']
 prev_end = 0.0
@@ -85,7 +113,7 @@ for i, (t0, cap) in enumerate(caps):
     t1 = caps[i + 1][0] if i + 1 < len(caps) else DUR
     slot = t1 - t0 - 0.12 + SPILL.get(cap, 0.0)
     text = (SAY_WHISPER if STYLE == 'whisper' else SAY).get(cap, cap)
-    speed = 1.0
+    speed = NATURAL
     a = synth(text, speed)
     while len(a) / SR > slot and speed < MAXSPEED:
         speed = min(MAXSPEED, speed * (len(a) / SR) / slot + 0.02)
@@ -96,7 +124,7 @@ for i, (t0, cap) in enumerate(caps):
     prev_end = start + len(a) / SR
     st = int(start * SR)
     track[st:st + len(a)] += a[: len(track) - st]
-    shown.append((start, text.replace('Scroll wall', 'Scrollwall').replace('scroll wall', 'scrollwall').lower().rstrip('.')))
+    shown.append((start, text.lower().rstrip('.')))
     print(f'{t0:5.2f}s -> {start:5.2f}s  slot {slot:.2f}  got {len(a) / SR:.2f}  speed {speed:.2f}  {text}')
 track = track[: int(DUR * SR)]
 track /= max(1e-6, np.abs(track).max()) / 0.9

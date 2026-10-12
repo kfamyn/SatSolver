@@ -2,7 +2,7 @@
 
 Each caption is added in TikTok as a text box with Text-to-speech on; TikTok's
 voice reads ~3 words/s. Shots are 0.6-2.6 s. Writes timings.json + captions.md.
-Usage: python3 script2.py <out_dir>
+Usage: [VO_PLAN=plan.json] python3 script2.py <out_dir>
 """
 import json
 import os
@@ -31,13 +31,30 @@ BEATS = [
 ]
 
 
+PLAN = os.environ.get('VO_PLAN')  # vo_kokoro.py plan: stretch beats so each line fits at a natural pace
+FIXED = {'wall_back'}  # comic timing stays as cut
+GAP = 0.25  # breath between lines
+
+
+def fit(cap, seq, offset):
+    if not PLAN or any(sid in FIXED for sid, _ in seq):
+        return seq
+    need = json.load(open(PLAN)).get(cap)
+    have = sum(d for _, d in seq) - offset
+    if need is None or need + GAP <= have:
+        return seq
+    k = (need + GAP + offset) / sum(d for _, d in seq)
+    return [(sid, d * k) for sid, d in seq]
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     shots, caps = [], []
     t = 0.0
     i = 0
     for beat in BEATS:
-        cap, seq = beat[0], beat[1]
+        cap = beat[0]
+        seq = fit(cap, beat[1], beat[2] if len(beat) > 2 else 0.0)
         caps.append((t + (beat[2] if len(beat) > 2 else 0.0), cap))
         for sid, d in seq:
             n = int(round(d * FPS))
