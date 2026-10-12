@@ -607,7 +607,7 @@ def shot(i, t, n):
         phone_tex.image = img('screens/shield_12')
         set_wall(1.0)
         h = wpos('head')
-        move(k, (h + Vector((0.32, 0.36, 0.2)), WALL_C), (h + Vector((0.22, 0.2, 0.12)), WALL_C + Vector((0, 0, -0.05))), (20, 24))
+        move(k, (h + Vector((0.3, 0.2, 0.2)), WALL_C), (h + Vector((0.2, 0.1, 0.12)), WALL_C + Vector((0, 0, -0.05))), (20, 24))
     elif sid == 'shield':
         set_time(18.6)
         pose_bed(t, scroll=0.0, free_arm_down=True)
