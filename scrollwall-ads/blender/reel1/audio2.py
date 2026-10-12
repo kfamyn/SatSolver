@@ -169,7 +169,9 @@ put(music, tape_stop(a), 0.0, 1.0)
 # 2) silence-ish under the wall: just the hum. 3) focus part: lighter loop, no kick at first
 b = loop(DUR - desk0 + 1, bright=0.6, drums=True)
 b[: int(0.4 * SR)] *= np.linspace(0, 1, int(0.4 * SR))
-seg = b[: int((hit2 - desk0) * SR)]
+cut = events('cut')[0]  # comic beat: music stops dead, he freezes... then the wall
+seg = b[: int((cut - desk0) * SR)]
+seg[-200:] *= np.linspace(1, 0, 200)
 put(music, seg, desk0, 0.85)
 
 # clock ticks accelerate with the time-lapse
@@ -187,7 +189,22 @@ put(fx, hum(desk0 - hit1 + 0.4), hit1, 0.18)
 put(fx, hum(dissolve - desk0 + 0.3), desk0, 0.08)  # still there, quieter, while he works
 put(fx, shimmer(1.3), dissolve, 0.7)
 put(fx, boom(), hit2, 1.0)
-put(fx, hum(DUR - hit2), hit2, 0.2)
+end0, _ = shot_t('endcard')
+put(fx, hum(end0 - hit2 + 0.3), hit2, 0.2)
+# the phone goes flying: cartoon whoosh up, clatter on the floor (twice: bounce)
+n = int(0.45 * SR)
+tt = np.arange(n) / SR
+put(fx, np.sin(2 * np.pi * np.cumsum(500 + 1400 * tt / 0.45) / SR) * np.sin(np.pi * tt / 0.45) * 0.5
+    + lp(rng.normal(0, 1, n), 3) * np.sin(np.pi * tt / 0.45) * 0.3, events('whoosh')[0], 0.35)
+for k, t in enumerate(events('clatter')):
+    for j in range(4):
+        put(fx, np.diff(rng.normal(0, 1, 1500), prepend=0) * env(1500, 0.0005, 120), t + j * 0.035 + rng.random() * 0.01,
+            (0.6 if k == 0 else 0.3) / (j + 1))
+    put(fx, tone(2600 + 300 * k, 0.12, 30), t, 0.12)
+# end card: little pops for ghost / title / button, and a warm resolving chord
+for t, f in ((0.0, 880), (0.25, 1175), (1.0, 1568)):
+    put(fx, tone(f, 0.2, 18), end0 + t, 0.25)
+put(music, epiano([hz(m) for m in (48, 55, 64, 67, 72)], 2.4), end0 + 0.2, 0.5)
 for sid in ('desk_top', 'coins'):
     st, d = shot_t(sid)
     for k in range(9):

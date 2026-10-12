@@ -15,7 +15,7 @@ for p in ('../room2', '../mh', '../ps1v2'):
     sys.path.insert(0, os.path.join(HERE, p))
 import bpy
 from bpy_extras.object_utils import world_to_camera_view
-from mathutils import Matrix, Quaternion, Vector
+from mathutils import Euler, Matrix, Quaternion, Vector
 
 REEL = os.environ.get('REEL', '/home/user/reel2')
 T = json.load(open(os.path.join(REEL, 'timings.json')))

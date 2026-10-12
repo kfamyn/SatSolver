@@ -1,7 +1,7 @@
 """Reel 1 v2 — tight cut (~20 s) paced for TikTok's built-in text-to-speech.
 
 Each caption is added in TikTok as a text box with Text-to-speech on; TikTok's
-voice reads ~3 words/s. Shots are 0.6-1.8 s. Writes timings.json + captions.md.
+voice reads ~3 words/s. Shots are 0.6-2.6 s. Writes timings.json + captions.md.
 Usage: python3 script2.py <out_dir>
 """
 import json
@@ -23,7 +23,11 @@ BEATS = [
     ("every focused minute earns coins", [('coins', 0.9), ('balance', 0.9)]),
     ("pay with your focus card. tilt to spend", [('pay_pov', 0.8), ('tilt', 0.9), ('unlocked', 0.6)]),
     ("and the wall lets you through", [('wall_open', 1.6)]),
-    ("5 guilt-free minutes. then it's back", [('golden', 1.1), ('wall_back', 1.2)]),
+    ("5 guilt-free minutes", [('golden', 1.3)]),
+    # comic beat: music cuts, he freezes, looks up... wall slams back, phone goes flying.
+    # The caption lands on the hit (offset), so the silence stays silent.
+    ("then it's back.", [('wall_back', 2.6)], 1.15),
+    ("scrollwall. download it on the app store", [('endcard', 2.4)]),
 ]
 
 
@@ -32,8 +36,9 @@ def main():
     shots, caps = [], []
     t = 0.0
     i = 0
-    for cap, seq in BEATS:
-        caps.append((t, cap))
+    for beat in BEATS:
+        cap, seq = beat[0], beat[1]
+        caps.append((t + (beat[2] if len(beat) > 2 else 0.0), cap))
         for sid, d in seq:
             n = int(round(d * FPS))
             shots.append({'i': i, 'id': sid, 'start': t, 'dur': n / FPS, 'frames': n, 'line': ''})

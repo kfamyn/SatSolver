@@ -110,6 +110,7 @@ def spring(x):
 
 
 WALL_C = Vector((WALL_X, WALL_Y, 1.05))
+_M0 = {}
 _reset_pose0 = reset_pose
 FING = os.environ.get('FING', '2345')
 THUMB = False
@@ -146,12 +147,64 @@ def insert(k, a=0.8, b=0.72, lens=32):
     place_up(p + (e - p) * (a + (b - a) * ease(k)), p, phone_up(phone), lens)
 
 
+PH_LOC0, PH_ROT0 = phone.location.copy(), phone.rotation_euler.copy()
+
+
+def attach_phone():
+    if phone.parent is None:
+        phone.parent = rig
+        phone.parent_type = 'BONE'
+        phone.parent_bone = 'wrist.L'
+        phone.rotation_mode = 'XYZ'
+        phone.location = PH_LOC0
+        phone.rotation_euler = PH_ROT0
+
+
+def throw_phone(m0, dt, v=(1.4, -0.25, 3.0)):
+    """cartoon toss: ballistic arc with spin, one bounce, then flat on the floor.
+    Returns 'land' on the frame it hits the floor (for the clatter)."""
+    p0 = m0.translation
+    vx, vy, vz = v
+    floor = 0.015
+    tl = (vz + math.sqrt(vz * vz + 2 * 9.8 * (p0.z - floor))) / 9.8
+    q0 = m0.to_quaternion()
+    phone.parent = None
+    phone.rotation_mode = 'QUATERNION'
+    ev = None
+    if dt <= tl:
+        pos = Vector((p0.x + vx * dt, p0.y + vy * dt, p0.z + vz * dt - 4.9 * dt * dt))
+        rot = Quaternion(Vector((0.3, 1.0, 0.5)).normalized(), dt * 22) @ q0
+    else:
+        d2 = dt - tl
+        base = Vector((p0.x + vx * tl, p0.y + vy * tl, floor))
+        b = 0.9 * d2 - 4.9 * d2 * d2
+        slide = min(d2, 0.35)
+        pos = base + Vector((vx * 0.35 * slide, vy * 0.35 * slide, max(0.0, b)))
+        flat = Euler((math.radians(-90), 0, 0.6)).to_quaternion()  # screen up
+        rot = flat if b <= 0 else Quaternion(Vector((1, 0, 0)), d2 * 12) @ flat
+        if 0 <= d2 < 1 / 30 or (0.9 / 4.9 <= d2 < 0.9 / 4.9 + 1 / 30):
+            ev = 'land'
+    phone.location = pos
+    phone.rotation_quaternion = rot
+    return ev
+
+
+def fling_arms(a):
+    if a <= 0:
+        return
+    for side, sg in (('L', 1), ('R', -1)):
+        cur_u = Vector((sg * 0.5, 0.1, 1.0))
+        point_bone(f'upperarm01.{side}', Vector((sg * 0.22, -0.45, -1.0)).lerp(cur_u, a))
+        point_bone(f'lowerarm01.{side}', Vector((sg * -0.3, -0.8, 0.5)).lerp(Vector((sg * 0.25, 0.15, 1.0)), a))
+
+
 # ------------------------------------------------------------------ shots
 def shot(i, t, n):
     k = t / max(1, n - 1)
     sid = T['shots'][i]['id']
     meta = {}
     hide_coins()
+    attach_phone()
     desk_phone.hide_render = True
     show_phone(True)
     screen_offset(0.0)
@@ -238,6 +291,8 @@ def shot(i, t, n):
         set_time(18.6)
         pose_bed(t, scroll=0.0, look=0.25)
         recoil(1.0)
+        point_bone('upperarm01.L', (0.3, -0.15, -1.0))
+        point_bone('lowerarm01.L', (0.15, -1.0, -0.25))
         phone_tex.image = img('screens/shield_12')
         set_wall(1.0)
         h = wpos('head')
@@ -344,18 +399,41 @@ def shot(i, t, n):
         feed(t, 0.6)
         move(k, ((-0.35, -1.2, 1.3), (-0.85, 1.0, 0.85)), ((-0.4, -1.5, 1.35), (-0.85, 1.0, 0.88)), (19, 18))
     elif sid == 'wall_back':
+        # 0-12 still scrolling | 12 music cuts, he freezes | slowly looks up | 34 SLAM, phone flies
         set_time(19.1)
-        pose_bed(t + 33, scroll=0.5 if k < 0.45 else 0.0, look=0.45)
-        if k > 0.5:
-            recoil(ease((t - 0.5 * n) / 4))
-        feed(t + 33, 0.6 if k < 0.45 else 0.0)
-        hit = int(0.45 * n)
+        cut, hit = 12, 34
+        pose_bed(min(t, cut) + 40, scroll=0.5 if t < cut else 0.0,
+                 look=0.45 - 0.4 * ease((t - cut - 4) / 14))
+        feed(min(t, cut) + 40, 0.6)
+        if t >= hit:
+            bpy.context.view_layer.update()
+            m0 = _M0.get('m') if _M0.get('m') is not None else phone.matrix_world.copy()
+            recoil(ease((t - hit) / 3))
+            fling_arms(ease((t - hit) / 3))
+            if throw_phone(m0, (t - hit) / 30) == 'land':
+                meta['clatter'] = True
+            meta['whoosh'] = t == hit + 1
+        else:
+            bpy.context.view_layer.update()
+            _M0['m'] = phone.matrix_world.copy()
+        meta['cut'] = t == cut
         set_wall(rise((t - hit + 6) / 10) if t >= hit - 6 else 0.0)
         meta['wall_hit'] = t == hit
         if hit <= t < hit + 8:
             meta['shake'] = 1 - (t - hit) / 8
             meta['flash'] = max(0.0, 0.6 - (t - hit) * 0.2)
-        move(k, ((-0.4, -1.5, 1.35), (-0.85, 1.0, 0.88)), ((-0.5, -1.62, 1.2), (-0.85, 0.2, 0.85)), (18, 15))
+        # static comic wide (locked-off), tiny creep in during the silence
+        z = ease((t - cut) / (hit - cut))
+        place(Vector((0.95, -1.35, 1.3)).lerp(Vector((0.85, -1.2, 1.27)), z), (-0.6, 0.45, 0.85), 16)
+    elif sid == 'endcard':
+        set_time(19.2)
+        pose_bed(0, scroll=0.0, look=0.05)
+        recoil(1.0)
+        fling_arms(1.0)
+        show_phone(False)
+        set_wall(1.0)
+        place((WALL_X, -1.62, 1.1), (WALL_X, 0.5, 1.0), 18)
+        meta['endcard'] = True
     return meta
 
 
@@ -372,6 +450,8 @@ def main():
                 if t != n // 2:
                     continue
             elif (g - 1) % STEP:
+                continue
+            if sh['id'] == 'endcard' and t > 0 and not MID:
                 continue
             s.frame_set(g)
             m = shot(i, t, n) or {}

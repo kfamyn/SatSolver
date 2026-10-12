@@ -8,9 +8,11 @@ import os
 import sys
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'ps1v2'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'ps1'))
+import pixfont  # noqa: E402
 from v2post import look  # noqa: E402
 
 REEL, SUB, OUT, W = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4])
@@ -24,7 +26,52 @@ cap_font = ImageFont.truetype(os.path.join(FONTS, 'Inter-ExtraBold.otf'), max(12
 hud_font = ImageFont.truetype(os.path.join(FONTS, 'Inter-SemiBold.otf'), max(10, int(W * 0.05)))
 FPS = T['fps']
 END = T['total_frames'] / FPS
-CAPS = [(c[0], (T['captions'][i + 1][0] if i + 1 < len(T['captions']) else END), c[1]) for i, c in enumerate(T['captions'])]
+CAPS = [(c[0], min(c[0] + 2.0, T['captions'][i + 1][0] if i + 1 < len(T['captions']) else END), c[1])
+        for i, c in enumerate(T['captions'])]
+END0 = [sh for sh in T['shots'] if sh['id'] == 'endcard']
+END0 = round(END0[0]['start'] * FPS) + 1 if END0 else None
+
+
+def pop(x):
+    """0->1 scale with a little overshoot."""
+    x = max(0.0, min(1.0, x))
+    return 1 + 2.2 * (x - 1) ** 3 + 1.2 * (x - 1) ** 2
+
+
+def end_card(bg, t):
+    """pixel end card over the blurred, darkened wall: what Scrollwall is + where to get it."""
+    img = bg.filter(ImageFilter.GaussianBlur(W / 90))
+    img = Image.blend(img, Image.new('RGB', img.size, (22, 14, 48)), min(0.72, t * 3))
+    cw, ch = 180, 320
+    card = Image.new('RGBA', (cw, ch), (0, 0, 0, 0))
+    d = ImageDraw.Draw(card)
+    # ghost bob
+    a = pop(t / 0.3)
+    if a > 0.05:
+        gw, gh = int(26 * a), int(44 * a)
+        cy = 92 + int(3 * np.sin(t * 6))
+        d.rounded_rectangle([90 - gw // 2, cy - gh // 2, 90 + gw // 2, cy + gh // 2], radius=max(1, gw // 2), fill=(240, 236, 255, 255))
+        if a > 0.6:
+            for ex in (-5, 5):
+                d.rectangle([90 + ex - 1, cy - 8, 90 + ex + 1, cy], fill=(25, 20, 45, 255))
+    if t > 0.25:
+        pixfont.draw_centered(card, 90, 132, 'SCROLLWALL', (255, 196, 90, 255), 2, shadow=(90, 40, 20, 255))
+    if t > 0.5:
+        pixfont.draw_centered(card, 90, 160, 'STOP DOOMSCROLLING.', (255, 255, 255, 255), 1)
+    if t > 0.75:
+        pixfont.draw_centered(card, 90, 176, 'FOCUS TO EARN COINS,', (205, 185, 255, 255), 1)
+        pixfont.draw_centered(card, 90, 187, 'SPEND THEM TO SCROLL.', (205, 185, 255, 255), 1)
+    b = pop((t - 1.0) / 0.3)
+    if b > 0.05:
+        pw, ph = int(164 * b), int(22 * b)
+        d.rounded_rectangle([90 - pw // 2, 230 - ph // 2, 90 + pw // 2, 230 + ph // 2], radius=max(1, ph // 2), fill=(255, 255, 255, 255))
+        if b > 0.9:
+            pixfont.draw_centered(card, 90, 227, 'DOWNLOAD ON THE APP STORE', (20, 16, 36, 255), 1)
+    card = card.resize((W, H), Image.NEAREST)
+    img = img.convert('RGBA')
+    img.alpha_composite(card)
+    return img.convert('RGB')
+
 
 
 def cap_at(t):
@@ -96,7 +143,9 @@ for g in range(1, T['total_frames'] + 1):
         d.rectangle([x - side // 2, y - side // 2, x + side // 2, y + side // 2], outline=(255, 255, 255), width=max(2, W // 270))
         if cc.get('tag'):
             outlined(d, (W // 2, int(H * 0.22)), cc['tag'], hud_font)
-    if not CLEAN:
+    if END0 and g >= END0:
+        img = end_card(img, (g - END0) / FPS)
+    if not CLEAN and not (END0 and g >= END0):
         txt = cap_at((g - 1) / FPS)
         if txt:
             tiktok_caption(img, txt)
