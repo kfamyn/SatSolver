@@ -21,7 +21,8 @@ s = bpy.context.scene
 s.render.engine = 'CYCLES'
 s.cycles.samples = 8
 body = bpy.data.objects['Human.' + PROXY]
-cloth = [o for o in bpy.data.objects if o.type == 'MESH' and any(k in o.name for k in ('jacket', 'pants', 'shoes'))]
+KEYS = os.environ.get('CLOTH_KEYS', 'jacket,pants,shoes').split(',')
+cloth = [o for o in bpy.data.objects if o.type == 'MESH' and any(k in o.name for k in KEYS)]
 # MakeHuman hides body skin under clothes with MASK modifiers; the clothes become
 # paint on the body here, so the hidden legs/feet must come back (and get baked)
 for m in [m for m in body.modifiers if m.type == 'MASK']:
@@ -94,7 +95,8 @@ for o in cloth:
     bpy.data.objects.remove(o, do_unlink=True)
 
 # hair: crush it to a low-poly helmet of cards
-hair = next((o for o in bpy.data.objects if o.type == 'MESH' and ('hair' in o.name or 'short0' in o.name)), None)
+HAIRN = os.environ.get('HAIRSTYLE', 'short0')
+hair = next((o for o in bpy.data.objects if o.type == 'MESH' and ('hair' in o.name.lower() or HAIRN in o.name)), None)
 if hair:
     m = hair.modifiers.new('ps1_decimate', 'DECIMATE')
     m.ratio = float(os.environ.get('HAIR', 0.08))

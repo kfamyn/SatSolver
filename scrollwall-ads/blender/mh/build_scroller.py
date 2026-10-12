@@ -5,6 +5,7 @@ Hoodie: "Hooded sweat jacket" by Elvaerwyn (CC-BY 4.0)  -> credit required.
 Pants: cortu_cargo_pants (CC0). Hair: cortu_short_messy_hair (CC0). Shoes: shoes01 (CC0).
 
 Usage: python build_scroller.py <out.blend>
+NPCs: env MACRO, RACE (json), CLOTHES (comma list), SKIN, HAIRSTYLE, PROXY.
 """
 import os
 import sys
@@ -25,6 +26,13 @@ from bl_ext.user_default.mpfb.services.targetservice import TargetService
 macro = TargetService.get_default_macro_info_dict()
 macro.update({'gender': 1.0, 'age': 0.45, 'muscle': 0.42, 'weight': 0.48, 'proportions': 0.55, 'height': 0.55})
 macro['race'] = {'asian': 0.2, 'caucasian': 0.6, 'african': 0.2}
+# NPC overrides, e.g. MACRO='{"gender": 0, "age": 0.6}' RACE='{"asian": 1}'
+import json  # noqa: E402
+macro.update(json.loads(os.environ.get('MACRO', '{}')))
+if os.environ.get('RACE'):
+    r = {'asian': 0.0, 'caucasian': 0.0, 'african': 0.0}
+    r.update(json.loads(os.environ['RACE']))
+    macro['race'] = r
 base = HumanService.create_human(macro_detail_dict=macro, scale=0.1)
 print('human', base.name, flush=True)
 
@@ -42,13 +50,13 @@ PROXY = os.environ.get('PROXY', 'male1591')
 add(f'proxymeshes/{PROXY}/{PROXY}.proxy', 'Proxymeshes')
 add('eyes/low-poly/low-poly.mhclo', 'Eyes')
 add('eyebrows/eyebrow001/eyebrow001.mhclo', 'Eyebrows')
-add('clothes/elvs_hooded_sweat_jacket1/elvs_hooded_sweat_jacket1.mhclo')
-add('clothes/cortu_cargo_pants/cortu_cargo_pants.mhclo')
-add('clothes/shoes01/shoes01.mhclo')
+for c in os.environ.get('CLOTHES', 'elvs_hooded_sweat_jacket1,cortu_cargo_pants,shoes01').split(','):
+    add(f'clothes/{c}/{c}.mhclo')
 HAIRSTYLE = os.environ.get('HAIRSTYLE', 'short02')
 add(f'hair/{HAIRSTYLE}/{HAIRSTYLE}.mhclo', 'Hair')
 try:
-    skin = os.path.join(DATA, 'skins', 'young_caucasian_male', 'young_caucasian_male.mhmat')
+    SKIN = os.environ.get('SKIN', 'young_caucasian_male')
+    skin = os.path.join(DATA, 'skins', SKIN, SKIN + '.mhmat')
     if os.path.exists(skin):
         HumanService.set_character_skin(skin, base, skin_type='GAMEENGINE')
         print('skin ok', flush=True)
