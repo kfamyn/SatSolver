@@ -18,7 +18,7 @@ BEATS = [
     ("screen time warns you. you tap ignore", [('limit', 0.9), ('face_blank', 0.6), ('ignore_tap', 0.8)]),
     ("you swipe again... and hit a wall", [('swipe_bounce', 0.9), ('wall_rise', 0.8), ('face_recoil', 0.6)]),
     ("a scrollwall.", [('wall_hero', 1.2)]),
-    ("no ignore button. zero coins", [('shield', 0.9), ('face_stare', 0.7)]),
+    ("you have to pay to scroll", [('shield', 0.9), ('face_stare', 0.7)]),
     ("so you actually focus", [('desk', 0.8), ('desk_top', 0.7)]),
     ("every focused minute earns coins", [('coins', 0.9), ('balance', 0.9)]),
     ("pay with your focus card. tilt to spend", [('pay_pov', 0.8), ('tilt', 0.9), ('unlocked', 0.6)]),

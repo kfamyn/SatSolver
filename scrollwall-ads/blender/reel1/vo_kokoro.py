@@ -31,7 +31,7 @@ SAY = {
     "screen time warns you. you tap ignore": "Screen Time warns you. You tap ignore.",
     "you swipe again... and hit a wall": "You swipe again... and hit a wall.",
     "a scrollwall.": "A Scrollwall.",
-    "no ignore button. zero coins": "No ignore. Zero coins.",
+    "you have to pay to scroll": "You have to pay to scroll.",
     "so you actually focus": "So you actually focus.",
     "every focused minute earns coins": "Every focused minute earns coins.",
     "pay with your focus card. tilt to spend": "Pay with your Focus Card. Tilt to spend.",
@@ -42,7 +42,7 @@ SAY = {
 }
 if LINE_MODE:
     SAY.update({"you open tiktok for 5 minutes": "You open TikTok, for five minutes.",
-                "no ignore button. zero coins": "No ignore button. Zero coins."})
+})
 # whispers are slow: a tighter script for the whisper style
 SAY_WHISPER = {
     "you open tiktok for 5 minutes": "Five minutes of TikTok.",
@@ -50,7 +50,7 @@ SAY_WHISPER = {
     "screen time warns you. you tap ignore": "Screen Time warns you. Ignore.",
     "you swipe again... and hit a wall": "Swipe again... a wall.",
     "a scrollwall.": "A Scrollwall.",
-    "no ignore button. zero coins": "Zero coins left.",
+    "you have to pay to scroll": "Pay to scroll.",
     "so you actually focus": "So you focus.",
     "every focused minute earns coins": "Focus earns coins.",
     "pay with your focus card. tilt to spend": "Focus Card. Tilt to pay.",
