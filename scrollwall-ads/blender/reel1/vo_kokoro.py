@@ -43,6 +43,9 @@ SAY = {
 if LINE_MODE:
     SAY.update({"you open tiktok for 5 minutes": "You open TikTok, for five minutes.",
 })
+APP = os.environ.get('APP')  # e.g. APP=Reels for the Instagram cut
+if APP:
+    SAY = {k: v.replace('TikTok', APP) for k, v in SAY.items()}
 # whispers are slow: a tighter script for the whisper style
 SAY_WHISPER = {
     "you open tiktok for 5 minutes": "Five minutes of TikTok.",
