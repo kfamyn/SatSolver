@@ -18,6 +18,7 @@ from kokoro_onnx import Kokoro
 
 REEL, VOICE, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
 STYLE = sys.argv[4] if len(sys.argv) > 4 else 'plain'
+LINE_MODE = os.environ.get('LINE_MODE') == '1'  # one call per line (the af_heart "narrator" take), no clause pauses
 K = Kokoro('/home/user/kokoro/kokoro-v1.0.onnx', '/home/user/kokoro/voices-v1.0.bin')
 T = json.load(open(os.path.join(REEL, 'timings.json')))
 SR = 44100
@@ -39,6 +40,9 @@ SAY = {
     "then it's back.": "Then it's back.",
     "scrollwall. download it on the app store": "Scrollwall. Download it on the App Store.",
 }
+if LINE_MODE:
+    SAY.update({"you open tiktok for 5 minutes": "You open TikTok, for five minutes.",
+                "no ignore button. zero coins": "No ignore button. Zero coins."})
 # whispers are slow: a tighter script for the whisper style
 SAY_WHISPER = {
     "you open tiktok for 5 minutes": "Five minutes of TikTok.",
@@ -61,13 +65,24 @@ SPILL = {"5 guilt-free minutes": 0.35}
 
 
 # "Scrollwall" said like "paywall": SCROLL-wall, with a light secondary stress so "wall" isn't swallowed
-FIX = [(re.compile(r'skɹˈoʊl\s?wˈ?ɔːl'), 'skɹˈoʊlwˌɔːl')]
+SW = os.environ.get('SW', 'skɹˈoʊlwɔl')  # short "a", one word: SCROLL-wall
+FIX = [(re.compile(r'skɹˈoʊl\s?wˈ?ˌ?ɔːl'), SW)]
 PAUSE = {',': 0.07, '.': 0.16, '!': 0.16, '?': 0.16, '...': 0.26}  # short beats: clear stops without dragging
 LANG = 'en-gb' if VOICE.startswith('b') else 'en-us'
 
 
 def synth(text, speed):
     """clause by clause, with real pauses at punctuation (one long call runs through commas/dots)."""
+    if LINE_MODE:
+        ph = K.tokenizer.phonemize(text, LANG)
+        for rx, rep in FIX:
+            ph = rx.sub(rep, ph)
+        a, sr = K.create(ph, voice=VOICE, speed=speed, lang=LANG, is_phonemes=True)
+        a = np.asarray(a, dtype=np.float32)
+        nz = np.where(np.abs(a) > 0.01)[0]
+        a = a[max(0, nz[0] - 200):nz[-1] + 800] if len(nz) else a
+        x = np.linspace(0, len(a) - 1, int(len(a) * SR / sr))
+        return np.interp(x, np.arange(len(a)), a)
     out = []
     for part in re.findall(r'[^,.!?]+(?:\.\.\.|[,.!?])?', text):
         part = part.strip()
@@ -97,7 +112,7 @@ def whisperize(a):
     return a * 0.8 + hiss
 
 
-MAXSPEED = 1.3
+MAXSPEED = float(os.environ.get('MAXSPEED', 1.3))
 NATURAL = float(os.environ.get('PACE', 1.2))  # brisk, TikTok-narrator pace
 if OUT.endswith('.json'):
     # plan mode: natural length of every line, so script2.py can stretch the cut to the voice
