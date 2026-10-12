@@ -40,20 +40,20 @@ def pop(x):
 
 def end_card(bg, t):
     """pixel end card over the blurred, darkened wall: what Scrollwall is + where to get it."""
-    img = bg.filter(ImageFilter.GaussianBlur(W / 90))
-    img = Image.blend(img, Image.new('RGB', img.size, (22, 14, 48)), min(0.72, t * 3))
+    img = bg.filter(ImageFilter.GaussianBlur(W / 30))
+    img = Image.blend(img, Image.new('RGB', img.size, (22, 14, 48)), min(0.86, t * 4))
     cw, ch = 180, 320
     card = Image.new('RGBA', (cw, ch), (0, 0, 0, 0))
     d = ImageDraw.Draw(card)
     # ghost bob
     a = pop(t / 0.3)
     if a > 0.05:
-        gw, gh = int(26 * a), int(44 * a)
-        cy = 92 + int(3 * np.sin(t * 6))
+        gw, gh = int(40 * a), int(66 * a)
+        cy = 80 + int(3 * np.sin(t * 6))
         d.rounded_rectangle([90 - gw // 2, cy - gh // 2, 90 + gw // 2, cy + gh // 2], radius=max(1, gw // 2), fill=(240, 236, 255, 255))
         if a > 0.6:
-            for ex in (-5, 5):
-                d.rectangle([90 + ex - 1, cy - 8, 90 + ex + 1, cy], fill=(25, 20, 45, 255))
+            for ex in (-8, 8):
+                d.rectangle([90 + ex - 2, cy - 12, 90 + ex + 2, cy + 1], fill=(25, 20, 45, 255))
     if t > 0.25:
         pixfont.draw_centered(card, 90, 132, 'SCROLLWALL', (255, 196, 90, 255), 2, shadow=(90, 40, 20, 255))
     if t > 0.5:
