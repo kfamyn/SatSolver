@@ -1,7 +1,8 @@
 """Reel 1 v2 post: PS1 look, shake, hit flash, CCTV overlay, and (preview only)
 TikTok-style caption boxes where the in-app text-to-speech lines will sit.
 
-Usage: python3 post2.py <reel_dir> <frames_subdir> <out_dir> <width> [clean]
+Usage: python3 post2.py <reel_dir> <frames_subdir> <out_dir> <width> [clean|preview] [caps.json]
+(caps.json from vo_kokoro.py: captions as spoken, with their start times)
 """
 import json
 import os
@@ -26,8 +27,8 @@ cap_font = ImageFont.truetype(os.path.join(FONTS, 'Inter-ExtraBold.otf'), max(12
 hud_font = ImageFont.truetype(os.path.join(FONTS, 'Inter-SemiBold.otf'), max(10, int(W * 0.05)))
 FPS = T['fps']
 END = T['total_frames'] / FPS
-CAPS = [(c[0], min(c[0] + 2.0, T['captions'][i + 1][0] if i + 1 < len(T['captions']) else END), c[1])
-        for i, c in enumerate(T['captions'])]
+_caps = json.load(open(sys.argv[6])) if len(sys.argv) > 6 else T['captions']
+CAPS = [(c[0], min(c[0] + 2.0, _caps[i + 1][0] if i + 1 < len(_caps) else END), c[1]) for i, c in enumerate(_caps)]
 END0 = [sh for sh in T['shots'] if sh['id'] == 'endcard']
 END0 = round(END0[0]['start'] * FPS) + 1 if END0 else None
 

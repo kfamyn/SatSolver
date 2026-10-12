@@ -5,7 +5,7 @@ force-field hum when the wall lands -> music back, lighter, for the focus part
 (coin plinks, ding, pay chime) -> shimmer when the wall dissolves -> boom +
 hum again when it comes back.
 
-Usage: python3 audio2.py <reel_dir> <out.wav>
+Usage: python3 audio2.py <reel_dir> <out.wav> [vo.wav]   (vo from vo_kokoro.py; music ducks under it)
 """
 import json
 import os
@@ -216,9 +216,18 @@ for t in events('chime'):
     for k, f in enumerate((1047, 1319, 1568, 2093)):
         put(fx, tone(f, 0.9, 4), t + k * 0.06, 0.2)
 
+vo = np.zeros(N)
+if len(sys.argv) > 3:
+    with wave.open(sys.argv[3]) as w:
+        v = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float64) / 32768
+    vo[:min(N, len(v))] = v[:N]
+    venv = np.convolve(np.abs(vo), np.ones(2205) / 2205, mode='same')
+    duck = 1 - np.clip(venv * 8, 0, 0.6)
+    music *= duck
+    fx *= 1 - np.clip(venv * 4, 0, 0.35)
 room = lp(rng.normal(0, 1, N), 40) * 0.015
 crackle = (rng.random(N) > 0.9996) * rng.normal(0, 0.3, N)
-mix = music * 0.55 + fx + room + crackle * 0.3
+mix = music * 0.55 + fx + room + crackle * 0.3 + vo * 0.85
 mix = np.tanh(mix * 1.2) * 0.85
 L = int(DUR * SR)
 pcm = (np.stack([mix[:L], mix[:L]], 1) * 32767).astype(np.int16)
